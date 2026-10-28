@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Help Them Find the Way!</title>
+<style>
+:root{--ink:#20304a;--blue:#2878d0;--sky:#eaf5ff;--green:#dff4d7;--yellow:#fff2b8;--pink:#ffe3e7;--purple:#eee7ff}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Trebuchet MS",Arial,sans-serif;background:linear-gradient(180deg,#eaf7ff,#fff9e8);color:var(--ink)}
+main{max-width:1050px;margin:auto;padding:20px}
+header{text-align:center;padding:10px 8px 18px}
+h1{font-size:clamp(1.8rem,4vw,3rem);margin:4px 0;color:#185da8}
+.subtitle{font-size:1.08rem;margin:6px 0}
+.pill{display:inline-block;background:#fff;border:2px solid #d9e9fa;border-radius:999px;padding:7px 13px;font-weight:bold;margin:5px}
+.layout{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;align-items:start}
+.panel{background:#fff;border:2px solid #d9e9fa;border-radius:22px;padding:17px;box-shadow:0 7px 0 #d9e9fa}
+h2{margin:0 0 10px;font-size:1.35rem}
+.map-wrap{background:#f1fae9;border-radius:17px;padding:8px;border:2px solid #dcefd0}
+svg{display:block;width:100%;height:auto}
+.road{stroke:#fff;stroke-width:42;stroke-linecap:round;fill:none}
+.road-edge{stroke:#d9d6cb;stroke-width:49;stroke-linecap:round;fill:none}
+.gridline{stroke:#dcefd0;stroke-width:1}
+.node{fill:#fff;stroke:#8bbd7c;stroke-width:3}
+.location-label{font: bold 15px "Trebuchet MS",Arial;fill:#20304a}
+.small-label{font:12px "Trebuchet MS",Arial;fill:#53647a}
+.character{font-size:32px;text-anchor:middle;dominant-baseline:middle}
+.start-ring{fill:#d8f0ff;stroke:#2878d0;stroke-width:3}
+.goal-ring{fill:#fff0a8;stroke:#e3a600;stroke-width:3}
+.status{background:var(--sky);border-radius:14px;padding:12px;margin:10px 0;font-weight:bold;line-height:1.4}
+.command-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+button{font:inherit;font-weight:bold;border:0;border-radius:13px;padding:12px;cursor:pointer;transition:transform .08s,filter .15s}
+button:hover{filter:brightness(.97);transform:translateY(-1px)}
+button:focus-visible{outline:4px solid #ffbf47;outline-offset:2px}
+.cmd{background:#2878d0;color:white;min-height:54px}
+.cmd.secondary{background:#5b61c9}
+.cmd:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.primary{background:#17834b;color:white;width:100%;margin-top:10px}
+.light{background:#f0f5fa;color:var(--ink);border:2px solid #d9e4ef}
+.destinations{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.destination{background:#f7f9fc;border:2px solid #dbe5ef;text-align:center;padding:9px 4px;border-radius:13px;font-size:.9rem}
+.destination.active{background:#fff2b8;border-color:#e0aa19}
+.progress{display:flex;gap:7px;margin:12px 0}
+.dot{flex:1;height:9px;background:#e5eaf0;border-radius:20px}
+.dot.done{background:#23a566}
+.instructions{background:#fff8d9;border:2px solid #f4dfa0;border-radius:14px;padding:12px;line-height:1.5}
+.feedback{font-weight:bold;min-height:25px;margin-top:9px}
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.step{background:#eef4ff;border-radius:9px;padding:5px 8px;font-size:.88rem}
+footer{text-align:center;color:#66758a;font-size:.9rem;padding:18px 0 5px}
+@media(max-width:760px){.layout{grid-template-columns:1fr}main{padding:12px}.panel{padding:13px}.destinations{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="pill">YEAR 4 ENGLISH • IMPERATIVES</div>
+  <h1>🧭 Help Them Find the Way!</h1>
+  <p class="subtitle">Read the command. Choose the direction. Help the character reach the place!</p>
+</header>
+<div class="panel" style="margin-bottom:18px">
+  <h2>🗺️ Your three missions</h2>
+  <div class="destinations" id="missionTabs">
+    <button class="destination active" data-mission="0">🌳 Mission 1<br><b>The Park</b></button>
+    <button class="destination" data-mission="1">📚 Mission 2<br><b>The Library</b></button>
+    <button class="destination" data-mission="2">🦁 Mission 3<br><b>The Zoo</b></button>
+  </div>
+  <div class="progress" aria-label="Mission progress"><div class="dot" id="dot0"></div><div class="dot" id="dot1"></div><div class="dot" id="dot2"></div></div>
+  <div class="instructions" id="scenario"><b>Situation 1:</b> Ali wants to play at the park. Help him follow the directions!</div>
+</div>
+<div class="layout">
+  <section class="panel">
+    <h2>🏘️ Town map</h2>
+    <div class="map-wrap">
+    <svg id="map" viewBox="0 0 600 410" role="img" aria-label="Town map showing roads, the character and the destination">
+      <rect x="0" y="0" width="600" height="410" rx="15" fill="#eaf7df"/>
+      <path class="gridline" d="M0 70H600 M0 140H600 M0 210H600 M0 280H600 M0 350H600 M70 0V410 M140 0V410 M210 0V410 M280 0V410 M350 0V410 M420 0V410 M490 0V410 M560 0V410"/>
+      <path class="road-edge" d="M80 340 L80 230 L220 230 L220 110 L370 110 L370 230 L510 230 L510 340"/>
+      <path class="road" d="M80 340 L80 230 L220 230 L220 110 L370 110 L370 230 L510 230 L510 340"/>
+      <path class="road-edge" d="M80 230 L80 110 L220 110 M220 230 L370 230 L370 340"/>
+      <path class="road" d="M80 230 L80 110 L220 110 M220 230 L370 230 L370 340 M80 340 L510 340"/>
+      <g>
+        <rect x="25" y="25" width="135" height="58" rx="12" fill="#d7edff" stroke="#83b9e7" stroke-width="2"/>
+        <text x="92" y="49" text-anchor="middle" font-size="24">🏫</text><text x="92" y="70" text-anchor="middle" class="location-label">School</text>
+        <rect x="250" y="25" width="125" height="58" rx="12" fill="#fce1c8" stroke="#e9b27c" stroke-width="2"/>
+        <text x="312" y="49" text-anchor="middle" font-size="24">🏠</text><text x="312" y="70" text-anchor="middle" class="location-label">Homes</text>
+        <rect x="430" y="25" width="145" height="58" rx="12" fill="#e8ddff" stroke="#b6a0eb" stroke-width="2"/>
+        <text x="502" y="49" text-anchor="middle" font-size="24">🛍️</text><text x="502" y="70" text-anchor="middle" class="location-label">Shops</text>
+        <rect x="20" y="350" width="130" height="48" rx="12" fill="#d9f5d1" stroke="#8bc47b" stroke-width="2"/>
+        <text x="85" y="370" text-anchor="middle" font-size="22">🌳</text><text x="85" y="389" text-anchor="middle" class="location-label">Park</text>
+        <rect x="215" y="350" width="135" height="48" rx="12" fill="#d8eaff" stroke="#83b9e7" stroke-width="2"/>
+        <text x="282" y="370" text-anchor="middle" font-size="22">📚</text><text x="282" y="389" text-anchor="middle" class="location-label">Library</text>
+        <rect x="430" y="350" width="145" height="48" rx="12" fill="#ffe1e5" stroke="#e9a0aa" stroke-width="2"/>
+        <text x="502" y="370" text-anchor="middle" font-size="22">🦁</text><text x="502" y="389" text-anchor="middle" class="location-label">Zoo</text>
+      </g>
+      <g id="routeDots"></g>
+      <circle id="startMarker" class="start-ring" cx="80" cy="340" r="19"/>
+      <circle id="goalMarker" class="goal-ring" cx="80" cy="340" r="22"/>
+      <text id="character" class="character" x="80" y="340">👦</text>
+      <text id="goalLabel" x="110" y="315" class="small-label" font-weight="bold">GOAL</text>
+    </svg>
+    </div>
+    <div class="status" id="mapStatus">Ali is at the school. His goal is the park.</div>
+    <div><b>Commands used:</b><div class="steps" id="steps"><span class="step">No commands yet</span></div></div>
+  </section>
+  <aside class="panel">
+    <h2>🎮 Choose a command</h2>
+    <p id="prompt">Ali is facing the road. Which command should he follow first?</p>
+    <div class="command-grid">
+      <button class="cmd" data-dir="up">⬆️ Go straight</button>
+      <button class="cmd" data-dir="left">⬅️ Turn left</button>
+      <button class="cmd" data-dir="right">➡️ Turn right</button>
+      <button class="cmd secondary" data-dir="down">⬇️ Go back</button>
+    </div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+    <button class="primary" id="nextBtn" hidden>Next mission ➜</button>
+    <button class="light" id="resetBtn" style="width:100%;margin-top:9px">↻ Restart this mission</button>
+    <p style="font-size:.9rem;color:#65758b;line-height:1.45;margin-bottom:0">Tip: Read each command aloud before clicking it. A correct move helps the character get closer to the destination!</p>
+  </aside>
+</div>
+<footer>Made for Year 4 English • Imperatives: Go straight, turn left, turn right, go back, stop.</footer>
+</main>
+<script>
+const missions = [
+ {name:"The Park",icon:"🌳",person:"Ali",character:"👦",goal:[80,340],start:[80,110],startText:"the school",goalText:"the park",route:["down","down"],scenario:"Ali wants to play at the park. Help him follow the directions!",prompt:"Ali is at the school. Follow the road down to reach the park.",expected:["down","down"],commands:["Go straight","Go straight"]},
+ {name:"The Library",icon:"📚",person:"Sara",character:"👧",goal:[370,340],start:[80,340],startText:"the park",goalText:"the library",route:["right","right"],scenario:"Sara wants to borrow a storybook from the library. Help her get there!",prompt:"Sara is at the park. Follow the road to the library.",expected:["right","right"],commands:["Turn right","Turn right"]},
+ {name:"The Zoo",icon:"🦁",person:"Ben",character:"🧒",goal:[510,340],start:[370,110],startText:"the homes",goalText:"the zoo",route:["down","right","down"],scenario:"Ben wants to see the animals at the zoo. Help him find the way!",prompt:"Ben is near the homes. Follow the road towards the zoo.",expected:["down","right","down"],commands:["Go straight","Turn right","Go straight"]}
+];
+const nodes={
+ "80,110":{up:null,down:"80,230",left:null,right:"220,110"},
+ "80,230":{up:"80,110",down:"80,340",left:null,right:"220,230"},
+ "80,340":{up:"80,230",down:null,left:null,right:"220,340"},
+ "220,340":{up:null,down:null,left:"80,340",right:"370,340"},
+ "220,110":{up:null,down:"220,230",left:"80,110",right:"370,110"},
+ "220,230":{up:"220,110",down:null,left:"80,230",right:"370,230"},
+ "370,110":{up:null,down:"370,230",left:"220,110",right:null},
+ "370,230":{up:"370,110",down:"370,340",left:"220,230",right:"510,230"},
+ "370,340":{up:"370,230",down:null,left:"220,340",right:"510,340"},
+ "510,230":{up:null,down:"510,340",left:"370,230",right:null},
+ "510,340":{up:"510,230",down:null,left:"370,340",right:null}
+};
+let current=0,position="",moveCount=0,completed=[false,false,false],history=[];
+const $=id=>document.getElementById(id);
+function coord(s){return s.split(",").map(Number)}
+function drawRoute(){
+ const m=missions[current],g=$("routeDots");g.innerHTML="";
+ const points=[m.start,...m.route.reduce((arr,d)=>{let last=arr[arr.length-1],next=nodes[last]?.[d];if(next)arr.push(next);return arr},[])];
+ points.forEach((p,i)=>{let [x,y]=coord(p);if(i>0){let c=document.createElementNS("http://www.w3.org/2000/svg","circle");c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r",7);c.setAttribute("fill","#2878d0");c.setAttribute("stroke","white");c.setAttribute("stroke-width","2");g.appendChild(c)}});
+}
+function render(){
+ const m=missions[current];position=m.start;moveCount=0;history=[];
+ $("scenario").innerHTML="<b>Situation "+(current+1)+":</b> "+m.scenario;
+ $("prompt").textContent=m.prompt;
+ $("character").textContent=m.character;
+ $("character").setAttribute("x",m.start[0]);$("character").setAttribute("y",m.start[1]);
+ $("startMarker").setAttribute("cx",m.start[0]);$("startMarker").setAttribute("cy",m.start[1]);
+ $("goalMarker").setAttribute("cx",m.goal[0]);$("goalMarker").setAttribute("cy",m.goal[1]);
+ $("goalLabel").setAttribute("x",m.goal[0]+25);$("goalLabel").setAttribute("y",m.goal[1]-25);
+ $("mapStatus").textContent=m.person+" is at "+m.startText+". The goal is "+m.goalText+".";
+ $("steps").innerHTML='<span class="step">No commands yet</span>';
+ $("feedback").textContent=completed[current]?"🌟 Mission completed! You can practise again.":"";
+ $("nextBtn").hidden=!completed[current]||current===2;
+ $("missionTabs").querySelectorAll("button").forEach((b,i)=>{b.classList.toggle("active",i===current);b.style.outline=completed[i]?"3px solid #23a566":""});
+ ["up","left","right","down"].forEach(d=>document.querySelector('[data-dir="'+d+'"]').disabled=completed[current]);
+ $("dot0").classList.toggle("done",completed[0]);$("dot1").classList.toggle("done",completed[1]);$("dot2").classList.toggle("done",completed[2]);
+ drawRoute();
+}
+function saySteps(){ $("steps").innerHTML=history.length?history.map(s=>'<span class="step">'+s+'</span>').join(""):'<span class="step">No commands yet</span>'; }
+function move(dir){
+ if(completed[current])return;
+ const m=missions[current],key=position,next=nodes[key]?.[dir];
+ if(!next){$("feedback").textContent="🤔 There isn't a road that way. Try another command!";$("feedback").style.color="#b64a35";return}
+ const expected=m.expected[moveCount];
+ // Only accept the planned correct route so learners practise choosing the intended commands.
+ if(dir!==expected){$("feedback").textContent="💡 Not that way! Read the map and try another imperative."; $("feedback").style.color="#b64a35";return}
+ position=next;moveCount++;history.push(({up:"Go straight",left:"Turn left",right:"Turn right",down:(current===0||current===2)?"Go straight":"Go back"})[dir]);
+ const [x,y]=coord(position);$("character").setAttribute("x",x);$("character").setAttribute("y",y);
+ $("mapStatus").textContent=m.person+" followed: "+history[history.length-1]+".";
+ saySteps();
+ if(moveCount>=m.expected.length && position===m.goal.join(",")){
+  completed[current]=true;$("feedback").textContent="🎉 Great job! "+m.person+" reached "+m.goalText+"!";$("feedback").style.color="#16834b";
+  $("mapStatus").textContent="Mission complete! You used imperative commands to reach "+m.goalText+".";
+  $("nextBtn").hidden=current===2;
+  if(current===2){$("nextBtn").hidden=false;$("nextBtn").textContent="🎉 Play again";$("nextBtn").dataset.replay="true"}
+  ["up","left","right","down"].forEach(d=>document.querySelector('[data-dir="'+d+'"]').disabled=true);
+  $("missionTabs").querySelectorAll("button")[current].style.outline="3px solid #23a566";
+  $("dot"+current).classList.add("done");
+ } else {
+  $("feedback").textContent="✅ Good command! Keep going.";
+  $("feedback").style.color="#16834b";
+ }
+}
+document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>move(b.dataset.dir)));
+$("missionTabs").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{current=Number(b.dataset.mission);$("nextBtn").dataset.replay="false";$("nextBtn").textContent="Next mission ➜";render()}));
+$("resetBtn").addEventListener("click",()=>{completed[current]=false;$("nextBtn").dataset.replay="false";$("nextBtn").textContent="Next mission ➜";render()});
+$("nextBtn").addEventListener("click",()=>{
+ if($("nextBtn").dataset.replay==="true"){completed=[false,false,false];current=0;$("nextBtn").dataset.replay="false";$("nextBtn").textContent="Next mission ➜";render();return}
+ if(current<2){current++;render()}else{completed=[false,false,false];current=0;render()}
+});
+render();
+</script>
+</body>
+</html>
